@@ -15,11 +15,18 @@
   .tag { flex: none; font-size: .8em; color: #8a94a3; }
   .empty { display: grid; place-items: center; height: 100%; padding: 12px; box-sizing: border-box;
            color: #8a94a3; text-align: center; font-size: 14px; line-height: 1.4; }
+  #x { all: unset; position: fixed; top: 10px; right: 10px; z-index: 2; width: 38px; height: 38px; border-radius: 50%;
+       display: grid; place-items: center; background: #0b0f14dd; border: 1px solid #2a3340; color: #cfd6df; cursor: pointer; }
+  #x:active { background: #2dd4bf33; color: #2dd4bf; }
+  #x svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
 </style>
 <div id="g"></div>
+<button id="x" aria-label="Fechar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
 <script>
   // PhoneBox Janelas: mostra o que o janelas.exe do PC manda em POST /api/push/janelas e, num toque,
   // roda o atalho "janela-N" do PhoneBox, que traz a janela do quadro N para frente.
+  // Funciona como um "modal": o X e a escolha de uma janela voltam para a página VOLTAR_PARA.
+  var VOLTAR_PARA = 'home';     // id da página para onde voltar; '' = ficar nesta página
   var grid = document.getElementById('g');
   var tiles = {};          // n -> { el, img, icon, name, tag, src }
   var lastKey = '';
@@ -60,7 +67,10 @@
       setTimeout(function () { t.el.classList.remove('press'); }, 150);
     }
     phonebox.run('janela-' + n);
+    if (VOLTAR_PARA) setTimeout(function () { phonebox.goto(VOLTAR_PARA); }, 350);
   }
+
+  document.getElementById('x').addEventListener('click', function () { phonebox.goto(VOLTAR_PARA || 1); });
 
   function tile(n) {
     var t = tiles[n];

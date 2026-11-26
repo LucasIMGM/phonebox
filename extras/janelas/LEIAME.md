@@ -30,8 +30,11 @@ Depois, no PhoneBox:
 1. **Atalhos**: crie `janela-1` … `janela-9`, cada um com *Executar um programa*, comando
    `%LOCALAPPDATA%\PhoneBox-Janelas\janelas.exe` (caminho completo) e argumentos `focar 1` … `focar 9`.
    Deixe-os fora da grade de atalhos (na grade, marque só os atalhos que você quer ver).
-2. **Páginas**: crie uma página com o widget **HTML personalizado** em tela cheia e cole o conteúdo de
-   `widget.html` no campo HTML.
+2. **Páginas**: crie uma página com id `janelas` e o widget **HTML personalizado** em tela cheia, com o conteúdo de
+   `widget.html`. Ela funciona como um modal: o X e a escolha de uma janela voltam para a página `home`
+   (mude `VOLTAR_PARA` no começo do script para outra página, ou `''` para ficar nela).
+3. **Barra pequena (opcional)**: um HTML personalizado de 1×4 no canto da página inicial com o conteúdo de
+   `barra.html` tem dois botões: ligar/desligar o monitor (atalho `tela`) e abrir a página `janelas`.
 
 ## Privacidade
 
