@@ -1,6 +1,8 @@
 <style>
+  /* em coluna quando o widget é alto e estreito, em linha quando é largo (a faixa em cima do relógio) */
   body { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 8px 0; box-sizing: border-box; }
-  button { all: unset; box-sizing: border-box; width: min(46px, 78vw); height: min(46px, 78vw); border-radius: 12px;
+  @media (min-aspect-ratio: 1/1) { body { flex-direction: row; justify-content: flex-start; padding: 0 10px; } }
+  button { all: unset; box-sizing: border-box; flex: none; width: min(46px, 78vw, 78vh); height: min(46px, 78vw, 78vh); border-radius: 12px;
            background: #1b222ccc; border: 1px solid #2a3340; display: grid; place-items: center; color: #cfd6df;
            cursor: pointer; transition: transform .08s, background-color .15s, color .15s; }
   button:active, button.press { transform: scale(.9); background: #2dd4bf33; color: #2dd4bf; }

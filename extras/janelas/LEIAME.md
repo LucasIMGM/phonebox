@@ -33,7 +33,7 @@ Depois, no PhoneBox:
 2. **Páginas**: crie uma página com id `janelas` e o widget **HTML personalizado** em tela cheia, com o conteúdo de
    `widget.html`. Ela funciona como um modal: o X e a escolha de uma janela voltam para a página `home`
    (mude `VOLTAR_PARA` no começo do script para outra página, ou `''` para ficar nela).
-3. **Barra pequena (opcional)**: um HTML personalizado de 1×4 no canto da página inicial com o conteúdo de
+3. **Barra pequena (opcional)**: um HTML personalizado numa faixa de 1 linha (ou 1 coluna) da página inicial com o conteúdo de
    `barra.html` tem dois botões: ligar/desligar o monitor (atalho `tela`) e abrir a página `janelas`.
 
 ## Privacidade
