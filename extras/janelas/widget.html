@@ -1,0 +1,132 @@
+<style>
+  body { padding: 6px; box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+  #g { display: grid; gap: 6px; height: 100%; }
+  .t { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; border-radius: 12px;
+       overflow: hidden; background: #141a22; border: 2px solid #232b36; transition: transform .08s, border-color .15s; }
+  .t.on { border-color: #2dd4bf; box-shadow: 0 0 0 1px #2dd4bf55; }
+  .t:active, .t.press { transform: scale(.97); }
+  .shot { flex: 1; min-height: 0; display: grid; place-items: center; background: #0b0f14; overflow: hidden; }
+  .shot img.p { width: 100%; height: 100%; object-fit: contain; }
+  .shot img.big { width: 34%; max-width: 64px; opacity: .85; }
+  .t.min .shot { opacity: .45; }
+  .bar { display: flex; align-items: center; gap: 6px; padding: 4px 7px; background: #141a22; font-size: var(--fs, 12px); }
+  .bar img { width: 1.25em; height: 1.25em; flex: none; }
+  .nm { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tag { flex: none; font-size: .8em; color: #8a94a3; }
+  .empty { display: grid; place-items: center; height: 100%; padding: 12px; box-sizing: border-box;
+           color: #8a94a3; text-align: center; font-size: 14px; line-height: 1.4; }
+</style>
+<div id="g"></div>
+<script>
+  // PhoneBox Janelas: mostra o que o janelas.exe do PC manda em POST /api/push/janelas e, num toque,
+  // roda o atalho "janela-N" do PhoneBox, que traz a janela do quadro N para frente.
+  var grid = document.getElementById('g');
+  var tiles = {};          // n -> { el, img, icon, name, tag, src }
+  var lastKey = '';
+  var data = null;
+  var B64 = /^[A-Za-z0-9+\/]+=*$/;
+
+  function el(tag, cls) { var e = document.createElement(tag); if (cls) e.className = cls; return e; }
+
+  function payload(push) {
+    var it = push && push.janelas;
+    if (!it) return null;
+    var d = it.data || it.Data || null;
+    return d && d.quadros ? d : null;
+  }
+
+  // escolhe colunas x linhas que deixam cada quadro (16:10 + a barra do título) o maior possível
+  function layout(n) {
+    var W = grid.clientWidth, H = grid.clientHeight, best = 1, bestArea = 0;
+    for (var c = 1; c <= n; c++) {
+      var r = Math.ceil(n / c);
+      var w = (W - 6 * (c - 1)) / c, h = (H - 6 * (r - 1)) / r - 24;
+      if (w <= 0 || h <= 0) continue;
+      var tw = Math.min(w, h * 1.6), area = tw * tw / 1.6;
+      if (area > bestArea) { bestArea = area; best = c; }
+    }
+    var rows = Math.ceil(n / best);
+    grid.style.gridTemplateColumns = 'repeat(' + best + ', minmax(0, 1fr))';
+    grid.style.gridTemplateRows = 'repeat(' + rows + ', minmax(0, 1fr))';
+    var tileW = (W - 6 * (best - 1)) / best;
+    document.body.style.setProperty('--fs', Math.max(10, Math.min(16, Math.round(tileW / 20))) + 'px');
+  }
+
+  function tap(n) {
+    var t = tiles[n];
+    if (t) {
+      Object.keys(tiles).forEach(function (k) { tiles[k].el.classList.toggle('on', +k === n); });
+      t.el.classList.add('press');
+      setTimeout(function () { t.el.classList.remove('press'); }, 150);
+    }
+    phonebox.run('janela-' + n);
+  }
+
+  function tile(n) {
+    var t = tiles[n];
+    if (t) return t;
+    t = { el: el('div', 't'), shot: el('div', 'shot'), img: el('img', 'p'), icon: el('img'), name: el('span', 'nm'), tag: el('span', 'tag'), src: null };
+    var bar = el('div', 'bar');
+    bar.append(t.icon, t.name, t.tag);
+    t.el.append(t.shot, bar);
+    t.el.addEventListener('click', function () { tap(n); });
+    tiles[n] = t;
+    return t;
+  }
+
+  function render() {
+    var d = data;
+    if (!d || !d.quadros.length) {
+      tiles = {};
+      grid.style.gridTemplateColumns = grid.style.gridTemplateRows = '';
+      var msg = el('div', 'empty');
+      msg.textContent = d ? 'Nenhuma janela aberta no PC.' : 'Esperando o PC… O programa janelas.exe precisa estar rodando no computador.';
+      grid.replaceChildren(msg);
+      return;
+    }
+    var icons = d.icones || {};
+    var keep = {};
+    var order = [];
+    d.quadros.forEach(function (q) {
+      var n = +q.n;
+      if (!(n >= 1 && n <= 99)) return;
+      var t = tile(n);
+      keep[n] = true;
+      order.push(t.el);
+      t.el.classList.toggle('on', !!q.ativa);
+      t.el.classList.toggle('min', !!q.minimizada);
+      t.name.textContent = q.titulo || q.app || '';
+      t.tag.textContent = q.minimizada ? 'minimizada' : '';
+      t.el.title = (q.app || '') + ' — ' + (q.titulo || '');
+
+      var ic = q.icone && icons[q.icone];
+      var icSrc = ic && B64.test(ic) ? 'data:image/png;base64,' + ic : '';
+      if (t.icon.getAttribute('src') !== icSrc) { if (icSrc) t.icon.src = icSrc; else t.icon.removeAttribute('src'); }
+      t.icon.style.display = icSrc ? '' : 'none';
+
+      // sem miniatura (minimizada, protegida ou ainda não capturada): o ícone do app grande no lugar
+      var src = q.img && B64.test(q.img) ? 'data:image/jpeg;base64,' + q.img : '';
+      var shotKey = src || 'icone:' + icSrc;
+      if (shotKey !== t.src) {
+        t.src = shotKey;
+        if (src) { t.img.src = src; t.shot.replaceChildren(t.img); }
+        else if (icSrc) { var big = el('img', 'big'); big.src = icSrc; t.shot.replaceChildren(big); }
+        else t.shot.replaceChildren();
+      }
+    });
+    Object.keys(tiles).forEach(function (k) { if (!keep[k]) delete tiles[k]; });
+    layout(order.length);
+    grid.replaceChildren.apply(grid, order);
+  }
+
+  phonebox.on('push', function (push) {
+    var d = payload(push);
+    var key = d ? JSON.stringify(d) : '';
+    if (key === lastKey && grid.childElementCount) return;
+    lastKey = key;
+    data = d;
+    render();
+  });
+  render();
+  if (window.ResizeObserver) new ResizeObserver(function () { if (data && data.quadros.length) layout(data.quadros.length); }).observe(grid);
+</script>
